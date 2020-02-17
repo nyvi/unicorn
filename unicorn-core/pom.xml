@@ -11,5 +11,11 @@
 
     <artifactId>unicorn-core</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.unicorn</groupId>
+            <artifactId>unicorn-annotations</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>
