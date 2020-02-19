@@ -28,6 +28,6 @@ public class Document implements Serializable {
     /**
      * 方法
      */
-    private List<MethodInfo> methodList;
+    private List<ApiInfo> apiList;
 
 }

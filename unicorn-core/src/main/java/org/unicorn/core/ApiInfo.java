@@ -2,13 +2,14 @@ package org.unicorn.core;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author czk
  */
 @Data
-public class MethodInfo {
+public class ApiInfo implements Serializable {
 
     /**
      * 路径
@@ -25,4 +26,13 @@ public class MethodInfo {
      */
     private List<String> methodList;
 
+    /**
+     * 入参
+     */
+    private List<Model> parameterList;
+
+    /**
+     * 出参
+     */
+    private Model response;
 }

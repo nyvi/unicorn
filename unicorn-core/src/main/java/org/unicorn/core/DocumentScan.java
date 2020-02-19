@@ -9,15 +9,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.unicorn.annotations.Api;
+import org.unicorn.annotations.ApiModel;
 import org.unicorn.annotations.ApiOperation;
 import org.unicorn.util.ArrayUtils;
+import org.unicorn.util.ReflectionUtils;
 import org.unicorn.util.StrUtils;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -31,55 +34,82 @@ public class DocumentScan {
     private final ApplicationContext applicationContext;
 
     public void scan() {
-        List<Class<?>> controllerList = this.getAllController();
+        // 所有Controller的Class
+        List<Class<?>> allControlList = ReflectionUtils.getAnnotationClass(applicationContext, Controller.class, RestController.class);
 
-        for (Class<?> beanClass : controllerList) {
+        for (Class<?> beanClass : allControlList) {
             Document document = this.getDocument(beanClass);
-            DocumentCache.addDocument(beanClass.getName(), document);
+            // 如果是CGLIB代理的类需要截取
+            String beanName = StrUtils.substringBefore(beanClass.getName(), "$$");
+            DocumentCache.addDocument(beanName, document);
         }
         System.err.println(DocumentCache.getAll());
     }
 
     private Document getDocument(Class<?> beanClass) {
         Document document = new Document();
-        document.setName(beanClass.getSimpleName());
+        document.setName(StrUtils.substringBefore(beanClass.getSimpleName(), "$$"));
         Api annotation = AnnotationUtils.findAnnotation(beanClass, Api.class);
-        if (annotation != null) {
-            document.setDesc(annotation.value());
-        }
+        document.setDesc(annotation != null ? annotation.value() : null);
+        // 类上的RequestMapping修饰的路径
         String basePath = this.getBasePath(beanClass);
-
+        // Control下的所有方法
         Method[] declaredMethods = beanClass.getDeclaredMethods();
 
-        List<MethodInfo> methodList = new ArrayList<>(declaredMethods.length);
-
+        List<ApiInfo> methodList = new ArrayList<>(declaredMethods.length);
         for (Method declaredMethod : declaredMethods) {
-            this.getMethodInfo(methodList, declaredMethod, basePath);
+            this.getApiInfo(methodList, declaredMethod, basePath);
         }
 
-        document.setMethodList(methodList);
+        document.setApiList(methodList);
         return document;
     }
 
-    private void getMethodInfo(List<MethodInfo> methodList, Method declaredMethod, String basePath) {
+    /**
+     * 获取接口详情
+     */
+    private void getApiInfo(List<ApiInfo> methodList, Method declaredMethod, String basePath) {
         RequestMapping requestMapping = AnnotatedElementUtils.findMergedAnnotation(declaredMethod, RequestMapping.class);
         if (requestMapping == null || ArrayUtils.isEmpty(requestMapping.value())) {
             return;
         }
-        MethodInfo methodInfo;
-        String[] pathList = requestMapping.value();
+
         ApiOperation apiOperation = declaredMethod.getAnnotation(ApiOperation.class);
         String desc = apiOperation != null ? apiOperation.value() : declaredMethod.getName();
 
-        List<String> methods = Arrays.stream(ArrayUtils.defaultIfEmpty(requestMapping.method(), RequestMethod.values()))
-                .map(RequestMethod::name).collect(Collectors.toList());
+        // 请求方法
+        RequestMethod[] requestMethods = ArrayUtils.defaultIfEmpty(requestMapping.method(), RequestMethod.values());
+        List<String> methods = Arrays.stream(requestMethods).map(RequestMethod::name).collect(Collectors.toList());
 
+        // 参数
+        Parameter[] parameters = declaredMethod.getParameters();
+        List<Model> parameterList = new ArrayList<>(parameters.length);
+        Model model;
+        if (ArrayUtils.isNotEmpty(parameters)) {
+            for (Parameter parameter : parameters) {
+                model = new Model();
+                model.setType(parameter.getType().getTypeName());
+                ApiModel apiModel = AnnotationUtils.getAnnotation(parameter.getType(), ApiModel.class);
+                model.setDesc(apiModel != null ? apiModel.value() : null);
+                parameterList.add(model);
+            }
+        }
+        model = new Model();
+        Type genericReturnType = declaredMethod.getGenericReturnType();
+        model.setType(genericReturnType.getTypeName());
+        ApiModel apiModel = declaredMethod.getReturnType().getAnnotation(ApiModel.class);
+        model.setDesc(apiModel != null ? apiModel.value() : null);
+
+        ApiInfo apiInfo;
+        String[] pathList = requestMapping.value();
         for (String path : pathList) {
-            methodInfo = new MethodInfo();
-            methodInfo.setDesc(desc);
-            methodInfo.setMethodList(methods);
-            methodInfo.setPath(StrUtils.pathRationalize(basePath + path));
-            methodList.add(methodInfo);
+            apiInfo = new ApiInfo();
+            apiInfo.setDesc(desc);
+            apiInfo.setMethodList(methods);
+            apiInfo.setResponse(model);
+            apiInfo.setParameterList(parameterList);
+            apiInfo.setPath(StrUtils.pathRationalize(basePath + path));
+            methodList.add(apiInfo);
         }
     }
 
@@ -92,22 +122,6 @@ public class DocumentScan {
             return "/" + requestMapping.value()[0] + "/";
         }
         return "/";
-    }
-
-    /**
-     * 获取所有控制层
-     */
-    private List<Class<?>> getAllController() {
-        Map<String, Object> controllerMap = applicationContext.getBeansWithAnnotation(Controller.class);
-        controllerMap.putAll(applicationContext.getBeansWithAnnotation(RestController.class));
-
-        List<Class<?>> beanList = new ArrayList<>(controllerMap.size());
-        for (Object value : controllerMap.values()) {
-            Class<?> beanClass = value.getClass();
-            beanList.add(beanClass);
-        }
-
-        return beanList;
     }
 
     public DocumentScan(ApplicationContext applicationContext) {
