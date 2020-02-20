@@ -11,13 +11,16 @@ import org.springframework.web.bind.annotation.RestController;
 import org.unicorn.annotations.Api;
 import org.unicorn.annotations.ApiIgnore;
 import org.unicorn.annotations.ApiModel;
+import org.unicorn.annotations.ApiModelProperty;
 import org.unicorn.annotations.ApiOperation;
 import org.unicorn.util.ArrayUtils;
 import org.unicorn.util.ReflectionUtils;
 import org.unicorn.util.StrUtils;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,40 +74,42 @@ public class DocumentScan {
     /**
      * 获取接口详情
      */
-    private void getApiInfo(List<ApiInfo> methodList, Method declaredMethod, String basePath) {
-        ApiIgnore apiIgnore = declaredMethod.getAnnotation(ApiIgnore.class);
+    private void getApiInfo(List<ApiInfo> methodList, Method method, String basePath) {
+        ApiIgnore apiIgnore = method.getAnnotation(ApiIgnore.class);
         if (apiIgnore != null) {
             return;
         }
-        RequestMapping requestMapping = AnnotatedElementUtils.findMergedAnnotation(declaredMethod, RequestMapping.class);
+        RequestMapping requestMapping = AnnotatedElementUtils.findMergedAnnotation(method, RequestMapping.class);
         if (requestMapping == null || ArrayUtils.isEmpty(requestMapping.value())) {
             return;
         }
 
-        ApiOperation apiOperation = declaredMethod.getAnnotation(ApiOperation.class);
-        String desc = apiOperation != null ? apiOperation.value() : declaredMethod.getName();
+        ApiOperation apiOperation = method.getAnnotation(ApiOperation.class);
+        String desc = apiOperation != null ? apiOperation.value() : method.getName();
 
         // 请求方法
         RequestMethod[] requestMethods = ArrayUtils.defaultIfEmpty(requestMapping.method(), RequestMethod.values());
         List<String> methods = Arrays.stream(requestMethods).map(RequestMethod::name).collect(Collectors.toList());
 
         // 参数
-        Parameter[] parameters = declaredMethod.getParameters();
-        List<Model> parameterList = new ArrayList<>(parameters.length);
-        Model model;
+        Parameter[] parameters = method.getParameters();
+        List<ModelType> parameterList = new ArrayList<>(parameters.length);
+        ModelType model;
         if (ArrayUtils.isNotEmpty(parameters)) {
             for (Parameter parameter : parameters) {
-                model = new Model();
-                model.setType(parameter.getType().getTypeName());
-                ApiModel apiModel = AnnotationUtils.getAnnotation(parameter.getType(), ApiModel.class);
+                Class<?> paramType = parameter.getType();
+                model = new ModelType();
+                model.setType(paramType.getTypeName());
+                ApiModel apiModel = AnnotationUtils.getAnnotation(paramType, ApiModel.class);
                 model.setDesc(apiModel != null ? apiModel.value() : null);
                 parameterList.add(model);
+                setModelInfo(paramType);
             }
         }
-        model = new Model();
-        Type genericReturnType = declaredMethod.getGenericReturnType();
+        model = new ModelType();
+        Type genericReturnType = method.getGenericReturnType();
         model.setType(genericReturnType.getTypeName());
-        ApiModel apiModel = declaredMethod.getReturnType().getAnnotation(ApiModel.class);
+        ApiModel apiModel = method.getReturnType().getAnnotation(ApiModel.class);
         model.setDesc(apiModel != null ? apiModel.value() : null);
 
         ApiInfo apiInfo;
@@ -117,6 +122,39 @@ public class DocumentScan {
             apiInfo.setParameters(parameterList);
             apiInfo.setPath(StrUtils.pathRationalize(basePath + path));
             methodList.add(apiInfo);
+        }
+    }
+
+    private void setGenericType(Type type) {
+        System.err.println(type.getTypeName());
+        if (type instanceof ParameterizedType) {
+            Type[] actualTypeArguments = ((ParameterizedType) type).getActualTypeArguments();
+            for (Type actualTypeArgument : actualTypeArguments) {
+                if (actualTypeArgument instanceof ParameterizedType) {
+                    setGenericType(actualTypeArgument);
+                } else {
+                    setModelInfo(actualTypeArgument.getClass());
+                }
+            }
+        }
+    }
+
+    private void setModelInfo(Class<?> paramType) {
+        if (!ReflectionUtils.isJavaType(paramType) && !DocumentCache.containsModel(paramType.getTypeName())) {
+            List<Field> fieldList = ReflectionUtils.getFieldList(paramType);
+            ModelInfo info;
+            List<ModelInfo> infoList = new ArrayList<>(fieldList.size());
+            for (Field field : fieldList) {
+                info = new ModelInfo();
+                info.setName(field.getName());
+                info.setType(field.getType().getTypeName());
+                ApiModelProperty apiModelProperty = AnnotationUtils.getAnnotation(field, ApiModelProperty.class);
+                if (apiModelProperty != null) {
+                    info.setDesc(apiModelProperty.value());
+                }
+                infoList.add(info);
+            }
+            DocumentCache.addModel(paramType.getTypeName(), infoList);
         }
     }
 

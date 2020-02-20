@@ -11,6 +11,7 @@ import java.util.List;
 @Data
 public class ApiInfo implements Serializable {
 
+    private static final long serialVersionUID = 7768357304074145232L;
     /**
      * 路径
      */
@@ -29,10 +30,10 @@ public class ApiInfo implements Serializable {
     /**
      * 入参
      */
-    private List<Model> parameters;
+    private List<ModelType> parameters;
 
     /**
      * 出参
      */
-    private Model response;
+    private ModelType response;
 }

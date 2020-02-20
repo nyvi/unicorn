@@ -5,11 +5,14 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
+ * 模型类型
+ *
  * @author czk
  */
 @Data
-public class Model implements Serializable {
+public class ModelType implements Serializable {
 
+    private static final long serialVersionUID = 2939204079622006600L;
     /**
      * 参数类型
      */
