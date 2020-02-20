@@ -14,6 +14,7 @@ import org.unicorn.annotations.ApiModel;
 import org.unicorn.annotations.ApiModelProperty;
 import org.unicorn.annotations.ApiOperation;
 import org.unicorn.util.ArrayUtils;
+import org.unicorn.util.ClassUtils;
 import org.unicorn.util.ReflectionUtils;
 import org.unicorn.util.StrUtils;
 
@@ -44,17 +45,16 @@ public class DocumentScan {
         for (Class<?> beanClass : allControlList) {
             ApiIgnore apiIgnore = beanClass.getAnnotation(ApiIgnore.class);
             if (apiIgnore == null) {
-                Document document = this.getDocument(beanClass);
-                // 如果是CGLIB代理的类需要截取
-                String beanName = StrUtils.substringBefore(beanClass.getName(), "$$");
-                DocumentCache.addDocument(beanName, document);
+                Class<?> userClass = ClassUtils.getUserClass(beanClass);
+                Document document = this.getDocument(userClass);
+                DocumentCache.addDocument(userClass.getName(), document);
             }
         }
     }
 
     private Document getDocument(Class<?> beanClass) {
         Document document = new Document();
-        document.setName(StrUtils.substringBefore(beanClass.getSimpleName(), "$$"));
+        document.setName(beanClass.getSimpleName());
         Api annotation = AnnotationUtils.findAnnotation(beanClass, Api.class);
         document.setDesc(annotation != null ? annotation.value() : null);
         // 类上的RequestMapping修饰的路径
@@ -112,6 +112,8 @@ public class DocumentScan {
         ApiModel apiModel = method.getReturnType().getAnnotation(ApiModel.class);
         model.setDesc(apiModel != null ? apiModel.value() : null);
 
+        setGenericType(genericReturnType);
+
         ApiInfo apiInfo;
         String[] pathList = requestMapping.value();
         for (String path : pathList) {
@@ -126,16 +128,17 @@ public class DocumentScan {
     }
 
     private void setGenericType(Type type) {
-        System.err.println(type.getTypeName());
         if (type instanceof ParameterizedType) {
             Type[] actualTypeArguments = ((ParameterizedType) type).getActualTypeArguments();
             for (Type actualTypeArgument : actualTypeArguments) {
                 if (actualTypeArgument instanceof ParameterizedType) {
                     setGenericType(actualTypeArgument);
                 } else {
-                    setModelInfo(actualTypeArgument.getClass());
+                    setModelInfo((Class<?>) actualTypeArgument);
                 }
             }
+        } else {
+            setModelInfo(type.getClass());
         }
     }
 
