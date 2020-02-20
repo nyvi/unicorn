@@ -10,6 +10,12 @@
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
+/unicorn-ui/.temp
+/unicorn-ui/dist
+/unicorn-ui/node
+/unicorn-ui/node_modules
+/unicorn-ui/package-lock.json
+
 # Package Files #
 *.jar
 *.war
@@ -18,6 +24,7 @@
 *.zip
 *.tar.gz
 *.rar
-
+*.idea
+*.iml
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
