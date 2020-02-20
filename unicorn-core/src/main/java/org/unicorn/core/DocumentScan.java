@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.unicorn.annotations.Api;
+import org.unicorn.annotations.ApiIgnore;
 import org.unicorn.annotations.ApiModel;
 import org.unicorn.annotations.ApiOperation;
 import org.unicorn.util.ArrayUtils;
@@ -38,12 +39,14 @@ public class DocumentScan {
         List<Class<?>> allControlList = ReflectionUtils.getAnnotationClass(applicationContext, Controller.class, RestController.class);
 
         for (Class<?> beanClass : allControlList) {
-            Document document = this.getDocument(beanClass);
-            // 如果是CGLIB代理的类需要截取
-            String beanName = StrUtils.substringBefore(beanClass.getName(), "$$");
-            DocumentCache.addDocument(beanName, document);
+            ApiIgnore apiIgnore = beanClass.getAnnotation(ApiIgnore.class);
+            if (apiIgnore == null) {
+                Document document = this.getDocument(beanClass);
+                // 如果是CGLIB代理的类需要截取
+                String beanName = StrUtils.substringBefore(beanClass.getName(), "$$");
+                DocumentCache.addDocument(beanName, document);
+            }
         }
-        System.err.println(DocumentCache.getAll());
     }
 
     private Document getDocument(Class<?> beanClass) {
@@ -69,6 +72,10 @@ public class DocumentScan {
      * 获取接口详情
      */
     private void getApiInfo(List<ApiInfo> methodList, Method declaredMethod, String basePath) {
+        ApiIgnore apiIgnore = declaredMethod.getAnnotation(ApiIgnore.class);
+        if (apiIgnore != null) {
+            return;
+        }
         RequestMapping requestMapping = AnnotatedElementUtils.findMergedAnnotation(declaredMethod, RequestMapping.class);
         if (requestMapping == null || ArrayUtils.isEmpty(requestMapping.value())) {
             return;
@@ -105,9 +112,9 @@ public class DocumentScan {
         for (String path : pathList) {
             apiInfo = new ApiInfo();
             apiInfo.setDesc(desc);
-            apiInfo.setMethodList(methods);
+            apiInfo.setMethods(methods);
             apiInfo.setResponse(model);
-            apiInfo.setParameterList(parameterList);
+            apiInfo.setParameters(parameterList);
             apiInfo.setPath(StrUtils.pathRationalize(basePath + path));
             methodList.add(apiInfo);
         }

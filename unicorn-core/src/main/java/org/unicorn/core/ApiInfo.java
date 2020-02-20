@@ -24,12 +24,12 @@ public class ApiInfo implements Serializable {
     /**
      * 请求方式 post get ..
      */
-    private List<String> methodList;
+    private List<String> methods;
 
     /**
      * 入参
      */
-    private List<Model> parameterList;
+    private List<Model> parameters;
 
     /**
      * 出参
