@@ -13,6 +13,7 @@
         <guava.version>28.2-jre</guava.version>
         <lombok.version>1.18.12</lombok.version>
         <spring.version>5.2.3.RELEASE</spring.version>
+        <validation.version>2.0.1.Final</validation.version>
     </properties>
 
     <dependencyManagement>
@@ -40,6 +41,12 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>javax.validation</groupId>
+                <artifactId>validation-api</artifactId>
+                <version>${validation.version}</version>
             </dependency>
 
             <dependency>

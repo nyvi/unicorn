@@ -2,7 +2,7 @@ package org.unicorn.bootstrap;
 
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
-import org.unicorn.core.DocumentScan;
+import org.unicorn.core.DocumentScanService;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -16,12 +16,12 @@ public class UnicornBootstrap implements SmartLifecycle {
 
     private AtomicBoolean initialized = new AtomicBoolean(false);
 
-    private final DocumentScan documentScan;
+    private final DocumentScanService documentScanService;
 
     @Override
     public void start() {
         if (initialized.compareAndSet(false, true)) {
-            documentScan.scan();
+            documentScanService.scan();
         }
     }
 
@@ -40,7 +40,7 @@ public class UnicornBootstrap implements SmartLifecycle {
         return Integer.MAX_VALUE;
     }
 
-    public UnicornBootstrap(DocumentScan documentScan) {
-        this.documentScan = documentScan;
+    public UnicornBootstrap(DocumentScanService documentScanService) {
+        this.documentScanService = documentScanService;
     }
 }

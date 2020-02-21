@@ -30,7 +30,9 @@ public class ModelInfo implements Serializable {
     private String desc;
 
     /**
-     * 约束
+     * 必填
      */
-    private String constraint;
+    private boolean required;
+
+
 }

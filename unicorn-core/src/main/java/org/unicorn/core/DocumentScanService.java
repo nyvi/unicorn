@@ -18,6 +18,9 @@ import org.unicorn.util.ClassUtils;
 import org.unicorn.util.ReflectionUtils;
 import org.unicorn.util.StrUtils;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -34,7 +37,7 @@ import java.util.stream.Collectors;
  * @author czk
  */
 @Component
-public class DocumentScan {
+public class DocumentScanService {
 
     private final ApplicationContext applicationContext;
 
@@ -103,7 +106,7 @@ public class DocumentScan {
                 ApiModel apiModel = AnnotationUtils.getAnnotation(paramType, ApiModel.class);
                 model.setDesc(apiModel != null ? apiModel.value() : null);
                 parameterList.add(model);
-                setModelInfo(paramType);
+                this.setModelInfo(paramType);
             }
         }
         model = new ModelType();
@@ -111,8 +114,8 @@ public class DocumentScan {
         model.setType(genericReturnType.getTypeName());
         ApiModel apiModel = method.getReturnType().getAnnotation(ApiModel.class);
         model.setDesc(apiModel != null ? apiModel.value() : null);
-
-        setGenericType(genericReturnType);
+        this.setModelInfo(method.getReturnType());
+        this.setGenericType(genericReturnType);
 
         ApiInfo apiInfo;
         String[] pathList = requestMapping.value();
@@ -127,21 +130,27 @@ public class DocumentScan {
         }
     }
 
+    /**
+     * 设置泛型对象
+     */
     private void setGenericType(Type type) {
         if (type instanceof ParameterizedType) {
-            Type[] actualTypeArguments = ((ParameterizedType) type).getActualTypeArguments();
-            for (Type actualTypeArgument : actualTypeArguments) {
-                if (actualTypeArgument instanceof ParameterizedType) {
-                    setGenericType(actualTypeArgument);
+            Type[] actualTypeArray = ((ParameterizedType) type).getActualTypeArguments();
+            for (Type actualType : actualTypeArray) {
+                if (actualType instanceof ParameterizedType) {
+                    this.setGenericType(actualType);
                 } else {
-                    setModelInfo((Class<?>) actualTypeArgument);
+                    this.setModelInfo((Class<?>) actualType);
                 }
             }
         } else {
-            setModelInfo(type.getClass());
+            this.setModelInfo(type.getClass());
         }
     }
 
+    /**
+     * 设置模型对象
+     */
     private void setModelInfo(Class<?> paramType) {
         if (!ReflectionUtils.isJavaType(paramType) && !DocumentCache.containsModel(paramType.getTypeName())) {
             List<Field> fieldList = ReflectionUtils.getFieldList(paramType);
@@ -149,16 +158,39 @@ public class DocumentScan {
             List<ModelInfo> infoList = new ArrayList<>(fieldList.size());
             for (Field field : fieldList) {
                 info = new ModelInfo();
-                info.setName(field.getName());
-                info.setType(field.getType().getTypeName());
                 ApiModelProperty apiModelProperty = AnnotationUtils.getAnnotation(field, ApiModelProperty.class);
                 if (apiModelProperty != null) {
+                    if (apiModelProperty.hidden()) {
+                        continue;
+                    }
+                    info.setRequired(apiModelProperty.required());
                     info.setDesc(apiModelProperty.value());
                 }
+                if (!info.isRequired()) {
+                    info.setRequired(isRequired(field));
+                }
+                info.setName(field.getName());
+                info.setType(field.getType().getTypeName());
                 infoList.add(info);
             }
             DocumentCache.addModel(paramType.getTypeName(), infoList);
         }
+    }
+
+    /**
+     * 判断是否必填
+     */
+    private boolean isRequired(Field field) {
+        NotNull notNull = AnnotationUtils.getAnnotation(field, NotNull.class);
+        if (notNull != null) {
+            return true;
+        }
+        NotBlank notBlank = AnnotationUtils.getAnnotation(field, NotBlank.class);
+        if (notBlank != null) {
+            return true;
+        }
+        NotEmpty notEmpty = AnnotationUtils.getAnnotation(field, NotEmpty.class);
+        return notEmpty != null;
     }
 
     /**
@@ -172,7 +204,7 @@ public class DocumentScan {
         return "/";
     }
 
-    public DocumentScan(ApplicationContext applicationContext) {
+    public DocumentScanService(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
 }
