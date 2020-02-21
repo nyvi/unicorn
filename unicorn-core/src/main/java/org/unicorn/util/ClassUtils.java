@@ -1,12 +1,9 @@
 package org.unicorn.util;
 
-import javax.annotation.Nonnull;
-
 /**
  * @author czk
  */
 public class ClassUtils {
-
 
     /**
      * 判断是否为代理对象
@@ -34,17 +31,8 @@ public class ClassUtils {
      * @param clazz 反射对象
      * @return 当前对象的class
      */
-    public static Class<?> getUserClass(Class<?> clazz) {
+    public static Class<?> getCurrentClass(Class<?> clazz) {
         return isProxy(clazz) ? clazz.getSuperclass() : clazz;
     }
 
-    /**
-     * 获取当前对象的class
-     *
-     * @param object 对象
-     * @return 当前对象的class
-     */
-    public static Class<?> getUserClass(@Nonnull Object object) {
-        return getUserClass(object.getClass());
-    }
 }

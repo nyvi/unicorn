@@ -7,7 +7,6 @@ import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -88,21 +87,25 @@ public class ReflectionUtils {
         return fieldList;
     }
 
+    /**
+     * 是否java类型数据
+     *
+     * @param clazz 类型class
+     * @return 如果是java的数据类型返回true
+     */
     public static boolean isJavaType(@Nonnull Class<?> clazz) {
-        return String.class.equals(clazz) ||
-                Integer.class.equals(clazz) ||
-                Long.class.equals(clazz) ||
-                Boolean.class.equals(clazz) ||
-                BigDecimal.class.equals(clazz) ||
-                Object.class.equals(clazz) ||
-                List.class.equals(clazz) ||
-                Map.class.equals(clazz) ||
-                Float.class.equals(clazz) ||
-                Double.class.equals(clazz) ||
-                Short.class.equals(clazz) ||
-                Character.class.equals(clazz);
+        String typeName = clazz.getTypeName();
+        return StrUtils.startsWithIgnoreCase(typeName, "java.lang.") ||
+                StrUtils.startsWithIgnoreCase(typeName, "java.util.");
     }
 
+    public static String getSimpleTypeName(@Nonnull Class<?> clazz) {
+        String typeName = clazz.getTypeName();
+        if (isJavaType(clazz)) {
+            return StrUtils.substringAfterLast(typeName, ".");
+        }
+        return typeName;
+    }
 
     private ReflectionUtils() {
     }

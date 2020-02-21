@@ -11,6 +11,8 @@ public class StrUtils extends StringUtils {
 
     private final static int INDEX_NOT_FOUND = -1;
 
+    public static final String EMPTY = "";
+
     /**
      * 路径合理化
      *
@@ -40,5 +42,26 @@ public class StrUtils extends StringUtils {
             return str;
         }
         return str.substring(0, pos);
+    }
+
+    /**
+     * 从最后面开始截取
+     *
+     * @param str       待截取字符串
+     * @param separator 截取字符串
+     * @return 截取后的字符串
+     */
+    public static String substringAfterLast(final String str, final String separator) {
+        if (isEmpty(str)) {
+            return str;
+        }
+        if (isEmpty(separator)) {
+            return EMPTY;
+        }
+        final int pos = str.lastIndexOf(separator);
+        if (pos == INDEX_NOT_FOUND || pos == str.length() - separator.length()) {
+            return EMPTY;
+        }
+        return str.substring(pos + separator.length());
     }
 }

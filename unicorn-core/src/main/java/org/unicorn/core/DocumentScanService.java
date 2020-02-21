@@ -48,7 +48,7 @@ public class DocumentScanService {
         for (Class<?> beanClass : allControlList) {
             ApiIgnore apiIgnore = beanClass.getAnnotation(ApiIgnore.class);
             if (apiIgnore == null) {
-                Class<?> userClass = ClassUtils.getUserClass(beanClass);
+                Class<?> userClass = ClassUtils.getCurrentClass(beanClass);
                 Document document = this.getDocument(userClass);
                 DocumentCache.addDocument(userClass.getName(), document);
             }
@@ -102,7 +102,7 @@ public class DocumentScanService {
             for (Parameter parameter : parameters) {
                 Class<?> paramType = parameter.getType();
                 model = new ModelType();
-                model.setType(paramType.getTypeName());
+                model.setType(ReflectionUtils.getSimpleTypeName(paramType));
                 ApiModel apiModel = AnnotationUtils.getAnnotation(paramType, ApiModel.class);
                 model.setDesc(apiModel != null ? apiModel.value() : null);
                 parameterList.add(model);
@@ -170,7 +170,7 @@ public class DocumentScanService {
                     info.setRequired(isRequired(field));
                 }
                 info.setName(field.getName());
-                info.setType(field.getType().getTypeName());
+                info.setType(ReflectionUtils.getSimpleTypeName(field.getType()));
                 infoList.add(info);
             }
             DocumentCache.addModel(paramType.getTypeName(), infoList);
