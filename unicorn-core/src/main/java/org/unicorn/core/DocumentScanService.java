@@ -102,16 +102,16 @@ public class DocumentScanService {
             for (Parameter parameter : parameters) {
                 Class<?> paramType = parameter.getType();
                 model = new ModelType();
-                model.setType(ReflectionUtils.getSimpleTypeName(paramType));
                 ApiModel apiModel = AnnotationUtils.getAnnotation(paramType, ApiModel.class);
-                model.setDesc(apiModel != null ? apiModel.value() : null);
+                model.setDesc(apiModel != null ? apiModel.value() : parameter.getName());
+                model.setType(ReflectionUtils.getSimpleTypeName(paramType));
                 parameterList.add(model);
                 this.setModelInfo(paramType);
             }
         }
         model = new ModelType();
         Type genericReturnType = method.getGenericReturnType();
-        model.setType(genericReturnType.getTypeName());
+        model.setType(ReflectionUtils.getSimpleTypeName(genericReturnType));
         ApiModel apiModel = method.getReturnType().getAnnotation(ApiModel.class);
         model.setDesc(apiModel != null ? apiModel.value() : null);
         this.setModelInfo(method.getReturnType());
@@ -170,7 +170,7 @@ public class DocumentScanService {
                     info.setRequired(isRequired(field));
                 }
                 info.setName(field.getName());
-                info.setType(ReflectionUtils.getSimpleTypeName(field.getType()));
+                info.setType(ReflectionUtils.getSimpleTypeName(field.getGenericType()));
                 infoList.add(info);
             }
             DocumentCache.addModel(paramType.getTypeName(), infoList);

@@ -7,6 +7,7 @@ import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -99,12 +100,31 @@ public class ReflectionUtils {
                 StrUtils.startsWithIgnoreCase(typeName, "java.util.");
     }
 
+
+    /**
+     * 获取类型简化名称
+     *
+     * @param clazz 类型class
+     * @return 简化名称
+     */
     public static String getSimpleTypeName(@Nonnull Class<?> clazz) {
         String typeName = clazz.getTypeName();
         if (isJavaType(clazz)) {
             return StrUtils.substringAfterLast(typeName, ".");
         }
         return typeName;
+    }
+
+    /**
+     * 获取泛型简化类型名称
+     *
+     * @param type 泛型Type
+     * @return 简化名称
+     */
+    public static String getSimpleTypeName(@Nonnull Type type) {
+        String typeName = type.getTypeName();
+        return typeName.replace("java.lang.", "")
+                .replace("java.util.", "");
     }
 
     private ReflectionUtils() {
