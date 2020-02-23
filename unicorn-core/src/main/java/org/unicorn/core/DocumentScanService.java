@@ -1,5 +1,6 @@
 package org.unicorn.core;
 
+import com.google.common.collect.Maps;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -17,6 +18,7 @@ import org.unicorn.util.ArrayUtils;
 import org.unicorn.util.ClassUtils;
 import org.unicorn.util.ReflectionUtils;
 import org.unicorn.util.StrUtils;
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
@@ -26,9 +28,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -106,7 +110,7 @@ public class DocumentScanService {
                 model.setDesc(apiModel != null ? apiModel.value() : parameter.getName());
                 model.setType(ReflectionUtils.getSimpleTypeName(paramType));
                 parameterList.add(model);
-                this.setModelInfo(paramType);
+                this.setGenericModelInfo(paramType);
             }
         }
         model = new ModelType();
@@ -114,8 +118,9 @@ public class DocumentScanService {
         model.setType(ReflectionUtils.getSimpleTypeName(genericReturnType));
         ApiModel apiModel = method.getReturnType().getAnnotation(ApiModel.class);
         model.setDesc(apiModel != null ? apiModel.value() : null);
-        this.setModelInfo(method.getReturnType());
-        this.setGenericType(genericReturnType);
+        this.setGenericModelInfo(method.getReturnType());
+        this.setGenericModelInfo(genericReturnType);
+        this.setGenericType(genericReturnType, method.getReturnType());
 
         ApiInfo apiInfo;
         String[] pathList = requestMapping.value();
@@ -130,28 +135,82 @@ public class DocumentScanService {
         }
     }
 
+    private void setGenericType(Type genericReturnType, Class<?> returnType) {
+        String typeName = genericReturnType.getTypeName();
+        if (genericReturnType instanceof ParameterizedType && !DocumentCache.containsModel(typeName)) {
+            Map<String, String> genericMap = Maps.newHashMap();
+            Class<?> rawType = ((ParameterizedTypeImpl) genericReturnType).getRawType();
+            TypeVariable<?>[] typeParameters = ((Class<?>) rawType).getTypeParameters();
+            Type[] actualTypeArguments = ((ParameterizedType) genericReturnType).getActualTypeArguments();
+            if (typeParameters.length == actualTypeArguments.length) {
+                for (int i = 0; i < typeParameters.length; i++) {
+                    Type actualTypeArgument = actualTypeArguments[i];
+                    String simpleTypeName = ReflectionUtils.getSimpleTypeName(actualTypeArgument);
+                    genericMap.put(typeParameters[i].getName(), simpleTypeName);
+                    if (actualTypeArgument instanceof ParameterizedType) {
+                        setGenericType(actualTypeArgument, ((ParameterizedTypeImpl) actualTypeArgument).getRawType());
+                    }
+                }
+            }
+            List<Field> fieldList = ReflectionUtils.getFieldList(returnType);
+            ModelInfo info;
+            List<ModelInfo> infoList = new ArrayList<>(fieldList.size());
+            for (Field field : fieldList) {
+                info = new ModelInfo();
+                ApiModelProperty apiModelProperty = AnnotationUtils.getAnnotation(field, ApiModelProperty.class);
+                if (apiModelProperty != null) {
+                    if (apiModelProperty.hidden()) {
+                        continue;
+                    }
+                    info.setDesc(apiModelProperty.value());
+                    info.setRequired(apiModelProperty.required());
+                }
+                if (!info.isRequired()) {
+                    info.setRequired(isRequired(field));
+                }
+                Type type = field.getGenericType();
+                String simpleTypeName = ReflectionUtils.getSimpleTypeName(field.getGenericType());
+                if (type instanceof ParameterizedType) {
+                    Type[] actualTypeList = ((ParameterizedType) type).getActualTypeArguments();
+                    for (Type actualType : actualTypeList) {
+                        String ownType = actualType.getTypeName();
+                        String actualName = genericMap.getOrDefault(ownType, type.getTypeName());
+                        simpleTypeName = simpleTypeName.replace(ownType, actualName);
+                    }
+                } else if (ReflectionUtils.isGenericType(type)) {
+                    simpleTypeName = genericMap.getOrDefault(type.getTypeName(), type.getTypeName());
+                }
+                info.setType(simpleTypeName);
+                info.setName(field.getName());
+                infoList.add(info);
+            }
+            DocumentCache.addModel(typeName, infoList);
+        }
+
+    }
+
     /**
      * 设置泛型对象
      */
-    private void setGenericType(Type type) {
+    private void setGenericModelInfo(Type type) {
         if (type instanceof ParameterizedType) {
             Type[] actualTypeArray = ((ParameterizedType) type).getActualTypeArguments();
             for (Type actualType : actualTypeArray) {
                 if (actualType instanceof ParameterizedType) {
-                    this.setGenericType(actualType);
+                    this.setGenericModelInfo(actualType);
                 } else {
-                    this.setModelInfo((Class<?>) actualType);
+                    this.setGenericModelInfo((Class<?>) actualType);
                 }
             }
         } else {
-            this.setModelInfo(type.getClass());
+            this.setGenericModelInfo(type.getClass());
         }
     }
 
     /**
      * 设置模型对象
      */
-    private void setModelInfo(Class<?> paramType) {
+    private void setGenericModelInfo(Class<?> paramType) {
         if (!ReflectionUtils.isJavaType(paramType) && !DocumentCache.containsModel(paramType.getTypeName())) {
             List<Field> fieldList = ReflectionUtils.getFieldList(paramType);
             ModelInfo info;

@@ -9,6 +9,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +17,8 @@ import java.util.Map;
  * @author czk
  */
 public class ReflectionUtils {
+
+    private static final Map<String, String> SIMPLE_NAME_CACHE = new HashMap<>();
 
     /**
      * 获取指定注解的Bean的class
@@ -100,6 +103,19 @@ public class ReflectionUtils {
                 StrUtils.startsWithIgnoreCase(typeName, "java.util.");
     }
 
+    /**
+     * 判断是否泛型类
+     *
+     * @param type 泛型Type
+     * @return 如果是泛型返回true
+     */
+    public static boolean isGenericType(@Nonnull Type type) {
+        if (ReflectionUtils.isJavaType(type.getClass())) {
+            return false;
+        }
+        return !type.getTypeName().contains(".");
+    }
+
 
     /**
      * 获取类型简化名称
@@ -109,8 +125,17 @@ public class ReflectionUtils {
      */
     public static String getSimpleTypeName(@Nonnull Class<?> clazz) {
         String typeName = clazz.getTypeName();
+        String simpleName = StrUtils.substringAfterLast(typeName, ".");
         if (isJavaType(clazz)) {
-            return StrUtils.substringAfterLast(typeName, ".");
+            return simpleName;
+        }
+        String pathName = SIMPLE_NAME_CACHE.get(simpleName);
+        if (pathName == null) {
+            SIMPLE_NAME_CACHE.put(simpleName, typeName);
+            return simpleName;
+        }
+        if (typeName.equals(pathName)) {
+            return simpleName;
         }
         return typeName;
     }
