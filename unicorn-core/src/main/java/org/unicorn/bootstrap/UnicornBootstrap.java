@@ -1,8 +1,10 @@
 package org.unicorn.bootstrap;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 import org.unicorn.core.DocumentScanService;
+import org.unicorn.util.ReflectionUtils;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -11,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author czk
  */
+@Slf4j
 @Component
 public class UnicornBootstrap implements SmartLifecycle {
 
@@ -21,7 +24,13 @@ public class UnicornBootstrap implements SmartLifecycle {
     @Override
     public void start() {
         if (initialized.compareAndSet(false, true)) {
-            documentScanService.scan();
+            try {
+                documentScanService.scan();
+            } catch (Exception e) {
+                log.error("出错啦!!!去https://github.com/nyvi/unicorn提Issues. 错误信息:", e);
+            } finally {
+                ReflectionUtils.clear();
+            }
         }
     }
 

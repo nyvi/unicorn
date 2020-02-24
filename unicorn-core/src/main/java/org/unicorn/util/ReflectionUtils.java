@@ -7,6 +7,7 @@ import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -94,11 +95,10 @@ public class ReflectionUtils {
     /**
      * 是否java类型数据
      *
-     * @param clazz 类型class
+     * @param typeName 类名称
      * @return 如果是java的数据类型返回true
      */
-    public static boolean isJavaType(@Nonnull Class<?> clazz) {
-        String typeName = clazz.getTypeName();
+    public static boolean isJavaType(@Nonnull String typeName) {
         return StrUtils.startsWithIgnoreCase(typeName, "java.lang.") ||
                 StrUtils.startsWithIgnoreCase(typeName, "java.util.");
     }
@@ -110,34 +110,34 @@ public class ReflectionUtils {
      * @return 如果是泛型返回true
      */
     public static boolean isGenericType(@Nonnull Type type) {
-        if (ReflectionUtils.isJavaType(type.getClass())) {
+        if (ReflectionUtils.isJavaType(type.getClass().getTypeName())) {
             return false;
         }
         return !type.getTypeName().contains(".");
     }
 
-
     /**
      * 获取类型简化名称
      *
-     * @param clazz 类型class
+     * @param typeName 类型 typeName
      * @return 简化名称
      */
-    public static String getSimpleTypeName(@Nonnull Class<?> clazz) {
-        String typeName = clazz.getTypeName();
-        String simpleName = StrUtils.substringAfterLast(typeName, ".");
-        if (isJavaType(clazz)) {
+    public static String getSimpleTypeName(@Nonnull String typeName) {
+        String simpleName = SIMPLE_NAME_CACHE.get(typeName);
+        if (simpleName != null) {
             return simpleName;
         }
-        String pathName = SIMPLE_NAME_CACHE.get(simpleName);
-        if (pathName == null) {
-            SIMPLE_NAME_CACHE.put(simpleName, typeName);
+        if (isJavaType(typeName)) {
+            simpleName = StrUtils.substringAfterLast(typeName, ".");
+            SIMPLE_NAME_CACHE.put(typeName, simpleName);
             return simpleName;
         }
-        if (typeName.equals(pathName)) {
-            return simpleName;
+        simpleName = StrUtils.substringAfterLast(typeName, ".");
+        if (SIMPLE_NAME_CACHE.containsValue(simpleName)) {
+            simpleName = typeName;
         }
-        return typeName;
+        SIMPLE_NAME_CACHE.put(typeName, simpleName);
+        return simpleName;
     }
 
     /**
@@ -148,10 +148,36 @@ public class ReflectionUtils {
      */
     public static String getSimpleTypeName(@Nonnull Type type) {
         String typeName = type.getTypeName();
-        return typeName.replace("java.lang.", "")
-                .replace("java.util.", "");
+        String simpleName = SIMPLE_NAME_CACHE.get(typeName);
+        if (simpleName != null) {
+            return simpleName;
+        }
+        if (type instanceof ParameterizedType) {
+            Type[] actualTypeArguments = ((ParameterizedType) type).getActualTypeArguments();
+            for (Type actualTypeArgument : actualTypeArguments) {
+                String simpleTypeName;
+                if (actualTypeArgument instanceof ParameterizedType) {
+                    simpleTypeName = getSimpleTypeName(actualTypeArgument);
+                } else {
+                    simpleTypeName = ReflectionUtils.getSimpleTypeName(actualTypeArgument.getTypeName());
+                }
+                typeName = typeName.replace(actualTypeArgument.getTypeName(), simpleTypeName);
+            }
+            Type rawType = ((ParameterizedType) type).getRawType();
+            String simpleTypeName = ReflectionUtils.getSimpleTypeName(rawType.getTypeName());
+            typeName = typeName.replace(rawType.getTypeName(), simpleTypeName);
+            SIMPLE_NAME_CACHE.put(type.getTypeName(), typeName);
+            return typeName;
+        } else {
+            return ReflectionUtils.getSimpleTypeName(type.getTypeName());
+        }
+    }
+
+    public static void clear() {
+        SIMPLE_NAME_CACHE.clear();
     }
 
     private ReflectionUtils() {
     }
+
 }

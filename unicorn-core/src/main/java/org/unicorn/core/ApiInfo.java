@@ -1,6 +1,7 @@
 package org.unicorn.core;
 
 import lombok.Data;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.io.Serializable;
 import java.util.List;
@@ -25,7 +26,7 @@ public class ApiInfo implements Serializable {
     /**
      * 请求方式 post get ..
      */
-    private List<String> methods;
+    private RequestMethod[] methods;
 
     /**
      * 入参

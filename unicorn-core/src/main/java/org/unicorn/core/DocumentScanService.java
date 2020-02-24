@@ -6,6 +6,7 @@ import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.ClassUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,7 +16,6 @@ import org.unicorn.annotations.ApiModel;
 import org.unicorn.annotations.ApiModelProperty;
 import org.unicorn.annotations.ApiOperation;
 import org.unicorn.util.ArrayUtils;
-import org.unicorn.util.ClassUtils;
 import org.unicorn.util.ReflectionUtils;
 import org.unicorn.util.StrUtils;
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
@@ -30,10 +30,8 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * bean 扫描组装
@@ -49,16 +47,21 @@ public class DocumentScanService {
         // 所有Controller的Class
         List<Class<?>> allControlList = ReflectionUtils.getAnnotationClass(applicationContext, Controller.class, RestController.class);
 
+        // 扫描所有Controller
         for (Class<?> beanClass : allControlList) {
             ApiIgnore apiIgnore = beanClass.getAnnotation(ApiIgnore.class);
             if (apiIgnore == null) {
-                Class<?> userClass = ClassUtils.getCurrentClass(beanClass);
+                Class<?> userClass = ClassUtils.getUserClass(beanClass);
                 Document document = this.getDocument(userClass);
-                DocumentCache.addDocument(userClass.getName(), document);
+                String simpleClassName = ReflectionUtils.getSimpleTypeName(userClass.getName());
+                DocumentCache.addDocument(simpleClassName, document);
             }
         }
     }
 
+    /**
+     * 获取接口文档
+     */
     private Document getDocument(Class<?> beanClass) {
         Document document = new Document();
         document.setName(beanClass.getSimpleName());
@@ -95,8 +98,7 @@ public class DocumentScanService {
         String desc = apiOperation != null ? apiOperation.value() : method.getName();
 
         // 请求方法
-        RequestMethod[] requestMethods = ArrayUtils.defaultIfEmpty(requestMapping.method(), RequestMethod.values());
-        List<String> methods = Arrays.stream(requestMethods).map(RequestMethod::name).collect(Collectors.toList());
+        RequestMethod[] methods = ArrayUtils.defaultIfEmpty(requestMapping.method(), RequestMethod.values());
 
         // 参数
         Parameter[] parameters = method.getParameters();
@@ -108,9 +110,9 @@ public class DocumentScanService {
                 model = new ModelType();
                 ApiModel apiModel = AnnotationUtils.getAnnotation(paramType, ApiModel.class);
                 model.setDesc(apiModel != null ? apiModel.value() : parameter.getName());
-                model.setType(ReflectionUtils.getSimpleTypeName(paramType));
+                model.setType(ReflectionUtils.getSimpleTypeName(parameter.getParameterizedType()));
                 parameterList.add(model);
-                this.setGenericModelInfo(paramType);
+                this.setModelInfo(paramType);
             }
         }
         model = new ModelType();
@@ -118,7 +120,7 @@ public class DocumentScanService {
         model.setType(ReflectionUtils.getSimpleTypeName(genericReturnType));
         ApiModel apiModel = method.getReturnType().getAnnotation(ApiModel.class);
         model.setDesc(apiModel != null ? apiModel.value() : null);
-        this.setGenericModelInfo(method.getReturnType());
+        this.setModelInfo(method.getReturnType());
         this.setGenericModelInfo(genericReturnType);
         this.setGenericType(genericReturnType, method.getReturnType());
 
@@ -136,8 +138,8 @@ public class DocumentScanService {
     }
 
     private void setGenericType(Type genericReturnType, Class<?> returnType) {
-        String typeName = genericReturnType.getTypeName();
-        if (genericReturnType instanceof ParameterizedType && !DocumentCache.containsModel(typeName)) {
+        String simpleName = ReflectionUtils.getSimpleTypeName(genericReturnType);
+        if (genericReturnType instanceof ParameterizedType && !DocumentCache.containsModel(simpleName)) {
             Map<String, String> genericMap = Maps.newHashMap();
             Class<?> rawType = ((ParameterizedTypeImpl) genericReturnType).getRawType();
             TypeVariable<?>[] typeParameters = ((Class<?>) rawType).getTypeParameters();
@@ -175,7 +177,9 @@ public class DocumentScanService {
                     for (Type actualType : actualTypeList) {
                         String ownType = actualType.getTypeName();
                         String actualName = genericMap.getOrDefault(ownType, type.getTypeName());
-                        simpleTypeName = simpleTypeName.replace(ownType, actualName);
+                        simpleTypeName = simpleTypeName.replace("<" + ownType, "<" + actualName);
+                        simpleTypeName = simpleTypeName.replace(ownType + ">", actualName + ">");
+                        simpleTypeName = simpleTypeName.replace("," + ownType + ",", "," + actualName + ",");
                     }
                 } else if (ReflectionUtils.isGenericType(type)) {
                     simpleTypeName = genericMap.getOrDefault(type.getTypeName(), type.getTypeName());
@@ -184,7 +188,7 @@ public class DocumentScanService {
                 info.setName(field.getName());
                 infoList.add(info);
             }
-            DocumentCache.addModel(typeName, infoList);
+            DocumentCache.addModel(simpleName, infoList);
         }
 
     }
@@ -199,19 +203,20 @@ public class DocumentScanService {
                 if (actualType instanceof ParameterizedType) {
                     this.setGenericModelInfo(actualType);
                 } else {
-                    this.setGenericModelInfo((Class<?>) actualType);
+                    this.setModelInfo((Class<?>) actualType);
                 }
             }
         } else {
-            this.setGenericModelInfo(type.getClass());
+            this.setModelInfo(type.getClass());
         }
     }
 
     /**
      * 设置模型对象
      */
-    private void setGenericModelInfo(Class<?> paramType) {
-        if (!ReflectionUtils.isJavaType(paramType) && !DocumentCache.containsModel(paramType.getTypeName())) {
+    private void setModelInfo(Class<?> paramType) {
+        String simpleTypeName = ReflectionUtils.getSimpleTypeName(paramType.getTypeName());
+        if (!ReflectionUtils.isJavaType(paramType.getTypeName()) && !DocumentCache.containsModel(simpleTypeName)) {
             List<Field> fieldList = ReflectionUtils.getFieldList(paramType);
             ModelInfo info;
             List<ModelInfo> infoList = new ArrayList<>(fieldList.size());
@@ -232,7 +237,7 @@ public class DocumentScanService {
                 info.setType(ReflectionUtils.getSimpleTypeName(field.getGenericType()));
                 infoList.add(info);
             }
-            DocumentCache.addModel(paramType.getTypeName(), infoList);
+            DocumentCache.addModel(simpleTypeName, infoList);
         }
     }
 

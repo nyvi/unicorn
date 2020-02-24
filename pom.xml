@@ -13,6 +13,7 @@
         <guava.version>28.2-jre</guava.version>
         <lombok.version>1.18.12</lombok.version>
         <spring.version>5.2.3.RELEASE</spring.version>
+        <slf4j-api.version>2.0.0-alpha1</slf4j-api.version>
         <validation.version>2.0.1.Final</validation.version>
     </properties>
 
@@ -56,6 +57,11 @@
                 <scope>provided</scope>
             </dependency>
 
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j-api.version}</version>
+            </dependency>
 
         </dependencies>
     </dependencyManagement>
