@@ -1,5 +1,6 @@
 package org.unicorn.core;
 
+import lombok.Builder;
 import lombok.Data;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -10,6 +11,7 @@ import java.util.List;
  * @author czk
  */
 @Data
+@Builder
 public class ApiInfo implements Serializable {
 
     private static final long serialVersionUID = 7768357304074145232L;
@@ -27,6 +29,16 @@ public class ApiInfo implements Serializable {
      * 请求方式 post get ..
      */
     private RequestMethod[] methods;
+
+    /**
+     * Content-Type
+     */
+    private String[] consumes;
+
+    /**
+     * Accept
+     */
+    private String[] produces;
 
     /**
      * 入参

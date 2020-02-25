@@ -28,4 +28,9 @@ public class UnicornControl {
     Map<String, Collection<ModelInfo>> apiModel() {
         return DocumentCache.getAllModel();
     }
+
+//    @GetMapping("unicorn-ui.html")
+//    String info() {
+//        return "/unicorn-ui/index.html";
+//    }
 }

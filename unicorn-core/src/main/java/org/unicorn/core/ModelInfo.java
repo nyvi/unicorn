@@ -1,5 +1,6 @@
 package org.unicorn.core;
 
+import lombok.Builder;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -10,6 +11,7 @@ import java.io.Serializable;
  * @author czk
  */
 @Data
+@Builder
 public class ModelInfo implements Serializable {
 
     private static final long serialVersionUID = 989099154530552311L;
