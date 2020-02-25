@@ -23,7 +23,7 @@ class App extends Component {
     };
 
     getDoc = (callBack) => {
-        let docUrl = "http://localhost:8888/api/api-docs";
+        let docUrl = "/api/api-docs";
         fetch(docUrl, {
             method: 'GET',
             headers: new Headers({'Content-Type': 'application/json'})

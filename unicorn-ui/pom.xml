@@ -19,10 +19,25 @@
 
     <build>
         <plugins>
+
+            <!-- clean -->
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>src/main/resources/META-INF/</directory>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+
+            <!-- install -->
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>${frontend-maven-plugin.version}</version>
+
                 <executions>
                     <execution>
                         <id>install node and npm</id>
@@ -30,7 +45,7 @@
                             <goal>install-node-and-npm</goal>
                         </goals>
                         <configuration>
-                            <nodeVersion>v9.11.1</nodeVersion>
+                            <nodeVersion>v10.15.3</nodeVersion>
                         </configuration>
                     </execution>
                     <!-- Install all project dependencies -->

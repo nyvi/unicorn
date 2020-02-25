@@ -23,7 +23,7 @@
             <dependency>
                 <groupId>org.unicorn</groupId>
                 <artifactId>unicorn-annotations</artifactId>
-                <version>${version}</version>
+                <version>1.0-SNAPSHOT</version>
             </dependency>
 
             <dependency>
