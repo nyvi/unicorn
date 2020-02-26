@@ -29,8 +29,4 @@ public class UnicornControl {
         return DocumentCache.getAllModel();
     }
 
-//    @GetMapping("unicorn-ui.html")
-//    String info() {
-//        return "/unicorn-ui/index.html";
-//    }
 }

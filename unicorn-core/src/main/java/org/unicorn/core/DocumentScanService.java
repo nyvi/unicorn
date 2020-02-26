@@ -20,7 +20,6 @@ import org.unicorn.annotations.ApiOperation;
 import org.unicorn.util.ArrayUtils;
 import org.unicorn.util.ReflectionUtils;
 import org.unicorn.util.StrUtils;
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
@@ -159,7 +158,7 @@ public class DocumentScanService {
         String simpleName = ReflectionUtils.getSimpleTypeName(genericReturnType);
         if (genericReturnType instanceof ParameterizedType && !DocumentCache.containsModel(simpleName)) {
             Map<String, String> genericMap = Maps.newHashMap();
-            Class<?> rawType = ((ParameterizedTypeImpl) genericReturnType).getRawType();
+            Type rawType = ((ParameterizedType) genericReturnType).getRawType();
             TypeVariable<?>[] typeParameters = ((Class<?>) rawType).getTypeParameters();
             Type[] actualTypeArguments = ((ParameterizedType) genericReturnType).getActualTypeArguments();
             if (typeParameters.length == actualTypeArguments.length) {
@@ -168,7 +167,7 @@ public class DocumentScanService {
                     String simpleTypeName = ReflectionUtils.getSimpleTypeName(actualTypeArgument);
                     genericMap.put(typeParameters[i].getName(), simpleTypeName);
                     if (actualTypeArgument instanceof ParameterizedType) {
-                        setGenericType(actualTypeArgument, ((ParameterizedTypeImpl) actualTypeArgument).getRawType());
+                        setGenericType(actualTypeArgument, (Class<?>) ((ParameterizedType) actualTypeArgument).getRawType());
                     }
                 }
             }
