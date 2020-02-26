@@ -28,7 +28,7 @@
                 <configuration>
                     <filesets>
                         <fileset>
-                            <directory>src/main/resources/META-INF/</directory>
+                            <directory>src/main/resources/META-INF/resources/</directory>
                         </fileset>
                     </filesets>
                 </configuration>

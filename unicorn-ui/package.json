@@ -21,7 +21,7 @@
   },
   "scripts": {
     "start": "react-app-rewired start",
-    "build": "react-app-rewired build && cd src/main/resources/META-INF && rename index.html unicorn-ui.html",
+    "build": "react-app-rewired build && cd src/main/resources/META-INF/resources && rename index.html unicorn-ui.html",
     "test": "react-app-rewired test",
     "eject": "react-app-rewired eject"
   },
