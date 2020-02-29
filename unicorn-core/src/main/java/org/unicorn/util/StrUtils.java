@@ -1,8 +1,8 @@
 package org.unicorn.util;
 
+import org.springframework.lang.NonNull;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.Nonnull;
 
 /**
  * @author czk
@@ -19,7 +19,7 @@ public class StrUtils extends StringUtils {
      * @param path 请求路径
      * @return 合理化后的路径
      */
-    public static String pathRationalize(@Nonnull String path) {
+    public static String pathRationalize(@NonNull String path) {
         return path.replace("//", "/").replace("//", "/");
     }
 

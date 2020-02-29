@@ -1,10 +1,9 @@
 package org.unicorn.core;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
+import org.springframework.util.MultiValueMap;
+import org.unicorn.util.HashMultiValueMap;
 
-import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,36 +15,32 @@ import java.util.Map;
 public class DocumentCache {
 
     /**
-     * 文档
+     * 文档缓存
      */
-    private final static Map<String, Document> DOCUMENT_CACHE = Maps.newLinkedHashMap();
+    private final static Map<String, Document> DOCUMENT_CACHE = new LinkedHashMap<>();
 
     /**
-     * 出入参数类型
+     * 模型缓存
      */
-    private final static Multimap<String, ModelInfo> MODEL_CACHE = ArrayListMultimap.create();
+    private final static MultiValueMap<String, ModelInfo> MODEL_CACHE = new HashMultiValueMap<>();
 
     public static void addDocument(String key, Document value) {
         DOCUMENT_CACHE.put(key, value);
     }
 
-    public static Map<String, Document> getAll() {
+    public static Map<String, Document> getAllDocs() {
         return DOCUMENT_CACHE;
     }
 
-    public static void addModel(String key, ModelInfo value) {
-        MODEL_CACHE.put(key, value);
+    public static boolean notExistModel(String key) {
+        return !MODEL_CACHE.containsKey(key);
     }
 
     public static void addModel(String key, List<ModelInfo> value) {
-        MODEL_CACHE.putAll(key, value);
+        MODEL_CACHE.addAll(key, value);
     }
 
-    public static boolean containsModel(String key) {
-        return MODEL_CACHE.containsKey(key);
-    }
-
-    public static Map<String, Collection<ModelInfo>> getAllModel() {
-        return MODEL_CACHE.asMap();
+    public static Map<String, List<ModelInfo>> getAllModel() {
+        return MODEL_CACHE;
     }
 }

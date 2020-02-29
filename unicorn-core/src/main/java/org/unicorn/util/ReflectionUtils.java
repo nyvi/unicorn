@@ -1,9 +1,8 @@
 package org.unicorn.util;
 
-import com.google.common.collect.Maps;
 import org.springframework.context.ApplicationContext;
+import org.springframework.lang.NonNull;
 
-import javax.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -28,15 +27,12 @@ public class ReflectionUtils {
      * @param annotation 注解
      * @return 注解的Class
      */
-    @SafeVarargs
-    public static List<Class<?>> getAnnotationClass(ApplicationContext context, Class<? extends Annotation>... annotation) {
-        List<Class<?>> result = new ArrayList<>();
-        for (Class<? extends Annotation> cls : annotation) {
-            String[] beanNameArray = context.getBeanNamesForAnnotation(cls);
-            for (String beanName : beanNameArray) {
-                Object beanInstance = context.getBean(beanName);
-                result.add(beanInstance.getClass());
-            }
+    public static List<Class<?>> getBeanClassForAnnotation(ApplicationContext context, Class<? extends Annotation> annotation) {
+        String[] beanNameArray = context.getBeanNamesForAnnotation(annotation);
+        List<Class<?>> result = new ArrayList<>(beanNameArray.length);
+        for (String beanName : beanNameArray) {
+            Object beanInstance = context.getBean(beanName);
+            result.add(beanInstance.getClass());
         }
         return result;
     }
@@ -47,7 +43,7 @@ public class ReflectionUtils {
      * @param clazz 反射类
      * @return 属性列表
      */
-    public static List<Field> getFieldList(@Nonnull Class<?> clazz) {
+    public static List<Field> getFieldList(@NonNull Class<?> clazz) {
         Field[] fields = clazz.getDeclaredFields();
         List<Field> fieldList = new ArrayList<>(fields.length);
         for (Field field : fields) {
@@ -77,9 +73,10 @@ public class ReflectionUtils {
      * @param superFieldList 父类属性
      * @return 去重后属性
      */
-    public static List<Field> excludeOverrideSuperField(@Nonnull List<Field> fieldList, @Nonnull List<Field> superFieldList) {
+    public static List<Field> excludeOverrideSuperField(@NonNull List<Field> fieldList, @NonNull List<Field> superFieldList) {
         // 子类属性
-        Map<String, Field> fieldMap = Maps.newHashMapWithExpectedSize(fieldList.size() + superFieldList.size());
+        int initialCapacity = fieldList.size() + superFieldList.size();
+        Map<String, Field> fieldMap = new HashMap<>(Math.max((int) (initialCapacity / 0.75F) + 1, 16));
         for (Field field : fieldList) {
             fieldMap.put(field.getName(), field);
         }
@@ -98,7 +95,7 @@ public class ReflectionUtils {
      * @param typeName 类名称
      * @return 如果是java的数据类型返回true
      */
-    public static boolean isJavaType(@Nonnull String typeName) {
+    public static boolean isJavaType(@NonNull String typeName) {
         return StrUtils.startsWithIgnoreCase(typeName, "java.lang.") ||
                 StrUtils.startsWithIgnoreCase(typeName, "java.util.");
     }
@@ -109,7 +106,7 @@ public class ReflectionUtils {
      * @param type 泛型Type
      * @return 如果是泛型返回true
      */
-    public static boolean isGenericType(@Nonnull Type type) {
+    public static boolean isGenericType(@NonNull Type type) {
         if (ReflectionUtils.isJavaType(type.getClass().getTypeName())) {
             return false;
         }
@@ -122,7 +119,7 @@ public class ReflectionUtils {
      * @param typeName 类型 typeName
      * @return 简化名称
      */
-    public static String getSimpleTypeName(@Nonnull String typeName) {
+    public static String getSimpleTypeName(@NonNull String typeName) {
         String simpleName = SIMPLE_NAME_CACHE.get(typeName);
         if (simpleName != null) {
             return simpleName;
@@ -146,7 +143,7 @@ public class ReflectionUtils {
      * @param type 泛型Type
      * @return 简化名称
      */
-    public static String getSimpleTypeName(@Nonnull Type type) {
+    public static String getSimpleTypeName(@NonNull Type type) {
         String typeName = type.getTypeName();
         String simpleName = SIMPLE_NAME_CACHE.get(typeName);
         if (simpleName != null) {
@@ -173,6 +170,9 @@ public class ReflectionUtils {
         }
     }
 
+    /**
+     * 清理后期没用的数据
+     */
     public static void clear() {
         SIMPLE_NAME_CACHE.clear();
     }

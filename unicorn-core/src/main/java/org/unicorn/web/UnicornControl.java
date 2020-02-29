@@ -8,7 +8,7 @@ import org.unicorn.core.Document;
 import org.unicorn.core.DocumentCache;
 import org.unicorn.core.ModelInfo;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,11 +21,11 @@ public class UnicornControl {
 
     @GetMapping("api-docs")
     Map<String, Document> apiDocs() {
-        return DocumentCache.getAll();
+        return DocumentCache.getAllDocs();
     }
 
     @GetMapping("api-model")
-    Map<String, Collection<ModelInfo>> apiModel() {
+    Map<String, List<ModelInfo>> apiModel() {
         return DocumentCache.getAllModel();
     }
 

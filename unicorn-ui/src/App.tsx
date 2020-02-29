@@ -23,7 +23,8 @@ class App extends Component {
     };
 
     getDoc = (callBack) => {
-        let docUrl = "/api/api-docs";
+        let basePath = (window.location.origin + window.location.pathname).replace("/unicorn-ui.html", "");
+        let docUrl = basePath + "/api/api-docs";
         fetch(docUrl, {
             method: 'GET',
             headers: new Headers({'Content-Type': 'application/json'})
@@ -56,23 +57,12 @@ class App extends Component {
         return (
             <Menu
                 onClick={this.handleClick}
-                style={{width: 256}}
+                style={{width: 256, height: '100%'}}
                 // defaultSelectedKeys={['1']}
                 // defaultOpenKeys={['sub1']}
                 mode="inline"
             >
                 {loop(docMap)}
-
-                {/*<SubMenu*/}
-                {/*    key="sub1"*/}
-                {/*    title="啥"*/}
-                {/*>*/}
-                {/*    <Menu.Item key="g1" title="Item 1">*/}
-                {/*        Hello*/}
-                {/*    </Menu.Item>*/}
-                {/*</SubMenu>*/}
-
-
             </Menu>
         );
     }

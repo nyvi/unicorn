@@ -1,6 +1,7 @@
 package org.unicorn.bootstrap;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 import org.unicorn.core.DocumentScanService;
@@ -13,9 +14,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author czk
  */
-@Slf4j
 @Component
 public class UnicornBootstrap implements SmartLifecycle {
+
+    private static final Logger LOG = LoggerFactory.getLogger(UnicornBootstrap.class);
 
     private AtomicBoolean initialized = new AtomicBoolean(false);
 
@@ -27,7 +29,7 @@ public class UnicornBootstrap implements SmartLifecycle {
             try {
                 documentScanService.scan();
             } catch (Exception e) {
-                log.error("出错啦!!!去https://github.com/nyvi/unicorn提Issues. 错误信息:", e);
+                LOG.error("出错啦!!!去https://github.com/nyvi/unicorn提Issues. 错误信息:", e);
             } finally {
                 ReflectionUtils.clear();
             }

@@ -1,6 +1,5 @@
 package org.unicorn.core;
 
-import com.google.common.collect.Maps;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -11,7 +10,6 @@ import org.springframework.util.ClassUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
 import org.unicorn.annotations.Api;
 import org.unicorn.annotations.ApiIgnore;
 import org.unicorn.annotations.ApiModel;
@@ -31,6 +29,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +45,7 @@ public class DocumentScanService {
 
     public void scan() {
         // 所有Controller的Class
-        List<Class<?>> allControlList = ReflectionUtils.getAnnotationClass(applicationContext, Controller.class, RestController.class);
+        List<Class<?>> allControlList = ReflectionUtils.getBeanClassForAnnotation(applicationContext, Controller.class);
 
         // 扫描所有Controller
         for (Class<?> beanClass : allControlList) {
@@ -59,6 +58,7 @@ public class DocumentScanService {
             Class<?> userClass = ClassUtils.getUserClass(beanClass);
             Document document = this.getDocument(userClass);
 
+            // 设置缓存
             String simpleClassName = ReflectionUtils.getSimpleTypeName(userClass.getName());
             DocumentCache.addDocument(simpleClassName, document);
         }
@@ -154,28 +154,20 @@ public class DocumentScanService {
         }
     }
 
+
+    /**
+     * 设置泛型对象
+     */
     private void setGenericType(Type genericReturnType, Class<?> returnType) {
         String simpleName = ReflectionUtils.getSimpleTypeName(genericReturnType);
-        if (genericReturnType instanceof ParameterizedType && !DocumentCache.containsModel(simpleName)) {
-            Map<String, String> genericMap = Maps.newHashMap();
-            Type rawType = ((ParameterizedType) genericReturnType).getRawType();
-            TypeVariable<?>[] typeParameters = ((Class<?>) rawType).getTypeParameters();
-            Type[] actualTypeArguments = ((ParameterizedType) genericReturnType).getActualTypeArguments();
-            if (typeParameters.length == actualTypeArguments.length) {
-                for (int i = 0; i < typeParameters.length; i++) {
-                    Type actualTypeArgument = actualTypeArguments[i];
-                    String simpleTypeName = ReflectionUtils.getSimpleTypeName(actualTypeArgument);
-                    genericMap.put(typeParameters[i].getName(), simpleTypeName);
-                    if (actualTypeArgument instanceof ParameterizedType) {
-                        setGenericType(actualTypeArgument, (Class<?>) ((ParameterizedType) actualTypeArgument).getRawType());
-                    }
-                }
-            }
+        if (genericReturnType instanceof ParameterizedType && DocumentCache.notExistModel(simpleName)) {
+            Map<String, String> genericMap = this.getGenericMap(genericReturnType);
+
             List<Field> fieldList = ReflectionUtils.getFieldList(returnType);
             List<ModelInfo> infoList = new ArrayList<>(fieldList.size());
             for (Field field : fieldList) {
-                boolean required = false;
                 String desc = null;
+                boolean required = false;
                 ApiModelProperty apiModelProperty = AnnotationUtils.getAnnotation(field, ApiModelProperty.class);
                 if (apiModelProperty != null) {
                     if (apiModelProperty.hidden()) {
@@ -187,6 +179,7 @@ public class DocumentScanService {
                 if (!required) {
                     required = isRequired(field);
                 }
+
                 Type type = field.getGenericType();
                 String simpleTypeName = ReflectionUtils.getSimpleTypeName(field.getGenericType());
                 if (type instanceof ParameterizedType) {
@@ -213,7 +206,36 @@ public class DocumentScanService {
             }
             DocumentCache.addModel(simpleName, infoList);
         }
+    }
 
+    /**
+     * 获取泛型变量与泛型类型的对应关系
+     * 如: key:T value: java.lang.String
+     *
+     * @param type 泛型类型
+     * @return 对应关系
+     */
+    private Map<String, String> getGenericMap(Type type) {
+        ParameterizedType genericReturnType = (ParameterizedType) type;
+        Map<String, String> genericMap = new HashMap<>(16);
+        Type rawType = genericReturnType.getRawType();
+        // value
+        Type[] actualTypeArguments = genericReturnType.getActualTypeArguments();
+        // key
+        TypeVariable<?>[] typeParameters = ((Class<?>) rawType).getTypeParameters();
+
+        if (typeParameters.length == actualTypeArguments.length) {
+            for (int i = 0; i < typeParameters.length; i++) {
+                Type actualType = actualTypeArguments[i];
+                String simpleName = ReflectionUtils.getSimpleTypeName(actualType);
+                genericMap.put(typeParameters[i].getName(), simpleName);
+                // 泛型里面还有泛型. 递归
+                if (actualType instanceof ParameterizedType) {
+                    this.setGenericType(actualType, (Class<?>) ((ParameterizedType) actualType).getRawType());
+                }
+            }
+        }
+        return genericMap;
     }
 
     /**
@@ -239,12 +261,12 @@ public class DocumentScanService {
      */
     private void setModelInfo(Class<?> paramType) {
         String simpleTypeName = ReflectionUtils.getSimpleTypeName(paramType.getTypeName());
-        if (!ReflectionUtils.isJavaType(paramType.getTypeName()) && !DocumentCache.containsModel(simpleTypeName)) {
+        if (!ReflectionUtils.isJavaType(paramType.getTypeName()) && DocumentCache.notExistModel(simpleTypeName)) {
             List<Field> fieldList = ReflectionUtils.getFieldList(paramType);
             List<ModelInfo> infoList = new ArrayList<>(fieldList.size());
             for (Field field : fieldList) {
-                boolean required = false;
                 String desc = null;
+                boolean required = false;
                 ApiModelProperty apiModelProperty = AnnotationUtils.getAnnotation(field, ApiModelProperty.class);
                 if (apiModelProperty != null) {
                     if (apiModelProperty.hidden()) {
