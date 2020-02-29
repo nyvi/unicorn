@@ -12,6 +12,7 @@
 
 /unicorn-ui/.temp
 /unicorn-ui/dist
+/unicorn-ui/src/main/
 /unicorn-ui/node
 /unicorn-ui/node_modules
 /unicorn-ui/package-lock.json
