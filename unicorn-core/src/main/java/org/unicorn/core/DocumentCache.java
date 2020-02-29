@@ -1,6 +1,8 @@
 package org.unicorn.core;
 
 import org.springframework.util.MultiValueMap;
+import org.unicorn.model.Document;
+import org.unicorn.model.ModelInfo;
 import org.unicorn.util.HashMultiValueMap;
 
 import java.util.LinkedHashMap;
@@ -42,5 +44,10 @@ public class DocumentCache {
 
     public static Map<String, List<ModelInfo>> getAllModel() {
         return MODEL_CACHE;
+    }
+
+    public static void clear() {
+        DOCUMENT_CACHE.clear();
+        MODEL_CACHE.clear();
     }
 }

@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -15,6 +16,10 @@ import org.unicorn.annotations.ApiIgnore;
 import org.unicorn.annotations.ApiModel;
 import org.unicorn.annotations.ApiModelProperty;
 import org.unicorn.annotations.ApiOperation;
+import org.unicorn.model.ApiInfo;
+import org.unicorn.model.Document;
+import org.unicorn.model.ModelInfo;
+import org.unicorn.model.ModelType;
 import org.unicorn.util.ArrayUtils;
 import org.unicorn.util.ReflectionUtils;
 import org.unicorn.util.StrUtils;
@@ -32,6 +37,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * bean 扫描组装
@@ -43,20 +50,29 @@ public class DocumentScanService {
 
     private final ApplicationContext applicationContext;
 
+    private final Docket docket;
+
     public void scan() {
+
         // 所有Controller的Class
         List<Class<?>> allControlList = ReflectionUtils.getBeanClassForAnnotation(applicationContext, Controller.class);
+
+        Set<String> ignoreSet = docket.getIgnoreClass();
 
         // 扫描所有Controller
         for (Class<?> beanClass : allControlList) {
             // ignore不处理
-            if (beanClass.isAnnotationPresent(ApiIgnore.class)) {
+            if (beanClass.isAnnotationPresent(ApiIgnore.class) || ignoreSet.contains(beanClass.getName())) {
                 continue;
             }
 
             // control可能会被CGLIB代理, 需要获取原本的Class
             Class<?> userClass = ClassUtils.getUserClass(beanClass);
             Document document = this.getDocument(userClass);
+
+            if (CollectionUtils.isEmpty(document.getApiList())) {
+                continue;
+            }
 
             // 设置缓存
             String simpleClassName = ReflectionUtils.getSimpleTypeName(userClass.getName());
@@ -139,7 +155,19 @@ public class DocumentScanService {
                 .build();
 
         String[] pathList = requestMapping.value();
+        List<Function<String, Boolean>> ignorePath = docket.getIgnorePath();
         for (String path : pathList) {
+            String url = StrUtils.pathRationalize(basePath + path);
+            boolean flag = false;
+            for (Function<String, Boolean> ignore : ignorePath) {
+                if (ignore.apply(url)) {
+                    flag = true;
+                    break;
+                }
+            }
+            if (flag) {
+                continue;
+            }
             methodList.add(
                     ApiInfo.builder()
                             .desc(desc)
@@ -148,7 +176,7 @@ public class DocumentScanService {
                             .consumes(consumes)
                             .produces(produces)
                             .parameters(parameterList)
-                            .path(StrUtils.pathRationalize(basePath + path))
+                            .path(url)
                             .build()
             );
         }
@@ -320,5 +348,6 @@ public class DocumentScanService {
 
     public DocumentScanService(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
+        this.docket = applicationContext.getBean(Docket.class);
     }
 }

@@ -3,7 +3,9 @@ package org.unicorn.bootstrap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
+import org.unicorn.core.DocumentCache;
 import org.unicorn.core.DocumentScanService;
 import org.unicorn.util.ReflectionUtils;
 
@@ -23,6 +25,9 @@ public class UnicornBootstrap implements SmartLifecycle {
 
     private final DocumentScanService documentScanService;
 
+    private final Environment environment;
+
+
     @Override
     public void start() {
         if (initialized.compareAndSet(false, true)) {
@@ -37,8 +42,15 @@ public class UnicornBootstrap implements SmartLifecycle {
     }
 
     @Override
+    public boolean isAutoStartup() {
+        String autoStartupConfig = environment.getProperty("spring.unicorn.auto-startup", "true");
+        return Boolean.parseBoolean(autoStartupConfig);
+    }
+
+    @Override
     public void stop() {
         initialized.getAndSet(false);
+        DocumentCache.clear();
     }
 
     @Override
@@ -46,12 +58,9 @@ public class UnicornBootstrap implements SmartLifecycle {
         return initialized.get();
     }
 
-    @Override
-    public int getPhase() {
-        return Integer.MAX_VALUE;
-    }
 
-    public UnicornBootstrap(DocumentScanService documentScanService) {
+    public UnicornBootstrap(DocumentScanService documentScanService, Environment environment) {
         this.documentScanService = documentScanService;
+        this.environment = environment;
     }
 }

@@ -24,7 +24,7 @@ class App extends Component {
 
     getDoc = (callBack) => {
         let basePath = (window.location.origin + window.location.pathname).replace("/unicorn-ui.html", "");
-        let docUrl = basePath + "/api/api-docs";
+        let docUrl = basePath + "/unicorn/api-docs";
         fetch(docUrl, {
             method: 'GET',
             headers: new Headers({'Content-Type': 'application/json'})
@@ -47,7 +47,11 @@ class App extends Component {
                 let api = [];
                 let apiList = value.apiList;
                 for (let i = 0; i < apiList.length; i++) {
-                    api.push(<Menu.Item key={apiList[i].path} title={apiList[i].desc}>{apiList[i].path}</Menu.Item>)
+                    api.push(
+                        <Menu.Item key={apiList[i].path} title={apiList[i].path}>
+                            {apiList[i].desc ? apiList[i].desc : apiList[i].path}
+                        </Menu.Item>
+                    )
                 }
                 ret.push(<SubMenu title={name} key={key}>{api}</SubMenu>);
             }

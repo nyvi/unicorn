@@ -1,4 +1,4 @@
-package org.unicorn.core;
+package org.unicorn.model;
 
 import lombok.Builder;
 import lombok.Data;
