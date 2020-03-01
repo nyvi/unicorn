@@ -1,73 +1,24 @@
 import React, {Component} from 'react';
 import './App.css';
+import "antd/dist/antd.css";
+import {Tabs} from 'antd';
+import ApiList from './component/http/ApiList';
 
-import {Menu} from 'antd';
+const TabPane = Tabs.TabPane;
 
-const {SubMenu} = Menu;
+function callback(key) {
+    console.log(key);
+}
 
 class App extends Component {
-
-    state = {
-        docMap: {}
-    };
-
-    componentDidMount() {
-        this.getDoc((res) => {
-            this.setState({docMap: res});
-        });
-    };
-
-    handleClick = () => {
-        // this.getDoc();
-        console.log("点击了")
-    };
-
-    getDoc = (callBack) => {
-        let basePath = (window.location.origin + window.location.pathname).replace("/unicorn-ui.html", "");
-        let docUrl = basePath + "/unicorn/api-docs";
-        fetch(docUrl, {
-            method: 'GET',
-            headers: new Headers({'Content-Type': 'application/json'})
-        }).then(
-            res => res.json().then((data) => {
-                callBack(data);
-            })
-        )
-    };
-
     render() {
-        const {docMap} = this.state;
-
-        const loop = data => {
-            let ret = [];
-            for (let key in data) {
-                if (!data.hasOwnProperty(key)) continue;
-                let value = data[key];
-                let name = value.desc ? value.desc : value.name;
-                let api = [];
-                let apiList = value.apiList;
-                for (let i = 0; i < apiList.length; i++) {
-                    api.push(
-                        <Menu.Item key={apiList[i].path} title={apiList[i].path}>
-                            {apiList[i].desc ? apiList[i].desc : apiList[i].path}
-                        </Menu.Item>
-                    )
-                }
-                ret.push(<SubMenu title={name} key={key}>{api}</SubMenu>);
-            }
-            return ret;
-        };
-
         return (
-            <Menu
-                onClick={this.handleClick}
-                style={{width: 256, height: '100%'}}
-                // defaultSelectedKeys={['1']}
-                // defaultOpenKeys={['sub1']}
-                mode="inline"
-            >
-                {loop(docMap)}
-            </Menu>
+            <div className="App">
+                <Tabs defaultActiveKey="2" onChange={callback}>
+                    <TabPane tab="Home" key="1">Home</TabPane>
+                    <TabPane tab="HTTP" key="2"><ApiList/></TabPane>
+                </Tabs>
+            </div>
         );
     }
 }
