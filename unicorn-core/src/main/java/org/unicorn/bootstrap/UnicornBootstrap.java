@@ -6,7 +6,7 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.unicorn.core.DocumentCache;
-import org.unicorn.core.DocumentScanService;
+import org.unicorn.core.DocumentService;
 import org.unicorn.util.ReflectionUtils;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,22 +17,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author czk
  */
 @Component
+
 public class UnicornBootstrap implements SmartLifecycle {
 
     private static final Logger LOG = LoggerFactory.getLogger(UnicornBootstrap.class);
 
     private AtomicBoolean initialized = new AtomicBoolean(false);
 
-    private final DocumentScanService documentScanService;
-
     private final Environment environment;
 
+    private final DocumentService documentService;
 
     @Override
     public void start() {
         if (initialized.compareAndSet(false, true)) {
             try {
-                documentScanService.scan();
+                documentService.mappingScan();
             } catch (Exception e) {
                 LOG.error("出错啦!!!去https://github.com/nyvi/unicorn提Issues. 错误信息:", e);
             } finally {
@@ -58,9 +58,9 @@ public class UnicornBootstrap implements SmartLifecycle {
         return initialized.get();
     }
 
-
-    public UnicornBootstrap(DocumentScanService documentScanService, Environment environment) {
-        this.documentScanService = documentScanService;
+    public UnicornBootstrap(Environment environment, DocumentService documentService) {
         this.environment = environment;
+        this.documentService = documentService;
     }
+
 }

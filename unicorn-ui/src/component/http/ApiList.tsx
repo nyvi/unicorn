@@ -1,14 +1,19 @@
-import React, {Component} from 'react'
-
-import {getBasePath} from "../../util/CommonUtils";
-
+import React, {Component} from 'react';
 import {Menu} from 'antd';
+import {getBasePath} from "../../util/CommonUtils";
 
 const {SubMenu} = Menu;
 
 export default class ApiList extends Component {
     state = {
-        docMap: {}
+        docMap: {},
+        apiInfo: {}
+    };
+
+    constructor(props) {
+        super(props);
+        const {apiInfo} = props;
+        this.setState({apiInfo: apiInfo});
     };
 
     componentDidMount() {
@@ -17,9 +22,17 @@ export default class ApiList extends Component {
         });
     };
 
-    handleClick = () => {
-        // this.getDoc();
-        console.log("点击了")
+    handleClick = e => {
+        const {docMap} = this.state;
+        const key = e.keyPath[1];
+        const apiList = docMap[key]["apiList"]
+        for (let i in apiList) {
+            if (!apiList.hasOwnProperty(i)) continue;
+            if (e.key === apiList[i]["path"]) {
+                this.setState({apiInfo: apiList[i]});
+                break;
+            }
+        }
     };
 
     getDoc = (callBack) => {
@@ -62,8 +75,6 @@ export default class ApiList extends Component {
             <Menu
                 onClick={this.handleClick}
                 style={{width: 256, height: '100%'}}
-                // defaultSelectedKeys={['1']}
-                // defaultOpenKeys={['sub1']}
                 mode="inline"
             >
                 {loop(docMap)}

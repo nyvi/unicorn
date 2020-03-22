@@ -19,7 +19,7 @@ import java.util.Map;
  * @author czk
  */
 @ApiIgnore
-@RestController
+@RestController("unicornControl")
 @AllArgsConstructor
 @RequestMapping("/unicorn/")
 public class UnicornControl {

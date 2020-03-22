@@ -6,7 +6,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.AntPathMatcher;
-import org.springframework.util.CollectionUtils;
 import org.unicorn.core.Docket;
 import org.unicorn.model.ProjectInstruction;
 import org.unicorn.spring.boot.autoconfigure.properties.UnicornStatProperties;
@@ -27,11 +26,7 @@ public class UnicornAutoConfigure {
     @Bean
     public Docket docket(UnicornStatProperties properties) {
         System.setProperty("spring.unicorn.auto-startup", Boolean.toString(properties.isAutoStartup()));
-        // 忽略类的class
-        Set<String> ignoreClass = properties.getIgnoreClass();
-        if (CollectionUtils.isEmpty(ignoreClass)) {
-            ignoreClass.add("org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController");
-        }
+
         // 忽略路径
         Set<String> ignorePath = properties.getIgnorePath();
         List<Function<String, Boolean>> ignoreList = new ArrayList<>(ignorePath.size());
@@ -47,7 +42,6 @@ public class UnicornAutoConfigure {
         projectInstruction.setContact(contact);
 
         return Docket.builder()
-                .ignoreClass(properties.getIgnoreClass())
                 .ignorePath(ignoreList)
                 .instruction(projectInstruction)
                 .build();

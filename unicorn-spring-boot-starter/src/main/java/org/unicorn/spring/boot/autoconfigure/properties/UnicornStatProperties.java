@@ -27,11 +27,6 @@ public class UnicornStatProperties {
     private Set<String> ignorePath = new HashSet<>();
 
     /**
-     * 忽略的bean
-     */
-    private Set<String> ignoreClass = new HashSet<>();
-
-    /**
      * 项目说明
      */
     public static class Instruction {
@@ -192,11 +187,4 @@ public class UnicornStatProperties {
         this.ignorePath = ignorePath;
     }
 
-    public Set<String> getIgnoreClass() {
-        return ignoreClass;
-    }
-
-    public void setIgnoreClass(Set<String> ignoreClass) {
-        this.ignoreClass = ignoreClass;
-    }
 }
