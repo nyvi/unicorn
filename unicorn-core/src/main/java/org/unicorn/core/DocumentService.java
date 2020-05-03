@@ -58,7 +58,8 @@ public class DocumentService {
 
         for (Map.Entry<RequestMappingInfo, HandlerMethod> entry : handlerMethodMap.entrySet()) {
             HandlerMethod method = entry.getValue();
-            boolean ignore = method.hasMethodAnnotation(ApiIgnore.class);
+            boolean ignore = method.hasMethodAnnotation(ApiIgnore.class)
+                    || AnnotationUtils.findAnnotation(method.getBeanType(), ApiIgnore.class) != null;
             if (ignore) {
                 continue;
             }
@@ -143,6 +144,7 @@ public class DocumentService {
 
     private ModelType getModelType(MethodParameter methodParameter) {
         ApiModel apiModel = methodParameter.getParameterType().getAnnotation(ApiModel.class);
+        this.setModelInfo(methodParameter.getParameterType());
         this.setGenericModelInfo(methodParameter.getGenericParameterType());
         this.setGenericType(methodParameter.getGenericParameterType(), methodParameter.getParameterType());
         return ModelType.builder()

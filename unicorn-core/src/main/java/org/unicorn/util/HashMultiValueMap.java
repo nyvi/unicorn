@@ -1,9 +1,7 @@
 package org.unicorn.util;
 
-
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import org.springframework.util.MultiValueMap;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -21,7 +19,7 @@ import java.util.Set;
  */
 public class HashMultiValueMap<K, V> implements MultiValueMap<K, V>, Serializable, Cloneable {
 
-    private static final long serialVersionUID = -8909019403107119458L;
+    private static final long serialVersionUID = -2315487738404028940L;
 
     private final Map<K, List<V>> targetMap;
 

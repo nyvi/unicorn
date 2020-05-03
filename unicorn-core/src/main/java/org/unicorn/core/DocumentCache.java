@@ -1,9 +1,9 @@
 package org.unicorn.core;
 
-import org.springframework.util.MultiValueMap;
 import org.unicorn.model.Document;
 import org.unicorn.model.ModelInfo;
 import org.unicorn.util.HashMultiValueMap;
+import org.unicorn.util.MultiValueMap;
 
 import java.util.LinkedHashMap;
 import java.util.List;

@@ -36,7 +36,6 @@ public class UnicornControl {
         return DocumentCache.getAllModel();
     }
 
-
     @GetMapping("api-instruction")
     ProjectInstruction instruction() {
         Docket docket = applicationContext.getBean(Docket.class);
