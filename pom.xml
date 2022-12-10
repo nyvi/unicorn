@@ -11,7 +11,7 @@
 
     <properties>
         <lombok.version>1.18.12</lombok.version>
-        <spring.version>5.2.3.RELEASE</spring.version>
+        <spring.version>6.0.0</spring.version>
         <unicorn.version>1.0.1-SNAPSHOT</unicorn.version>
         <slf4j-api.version>2.0.0-alpha1</slf4j-api.version>
         <validation.version>2.0.1.Final</validation.version>
